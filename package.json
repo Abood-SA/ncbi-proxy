@@ -1,12 +1,12 @@
 {
   "name": "ncbi-proxy",
-  "type": "module",
+  "version": "1.0.0",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "node-fetch": "^3.3.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "node-fetch": "^2.7.0"
   }
 }
