@@ -51,12 +51,10 @@ app.get("/fetch", async (req, res) => {
         let fastaText;
         
         if (accession) {
-            // Direct accession fetch
             const url = `${NCBI_BASE}/efetch.fcgi?db=nuccore&id=${accession}&rettype=fasta&retmode=text`;
             const response = await fetch(url);
             fastaText = await response.text();
         } else if (gene) {
-            // Search by gene name
             const searchUrl = `${NCBI_BASE}/esearch.fcgi?db=nuccore&term=${encodeURIComponent(gene)}[Gene]+AND+${encodeURIComponent(organism)}[Organism]+AND+refseq[filter]+AND+biomol_mrna[PROP]&retmax=1&retmode=json`;
             const searchRes = await fetch(searchUrl);
             const searchData = await searchRes.json();
@@ -81,7 +79,7 @@ app.get("/fetch", async (req, res) => {
 });
 
 // ============================================
-// BLAST Submit - إرسال طلب BLAST
+// BLAST Submit
 // ============================================
 app.post("/blast/submit", async (req, res) => {
     try {
@@ -104,19 +102,15 @@ app.post("/blast/submit", async (req, res) => {
         const response = await fetch(BLAST_BASE, {
             method: "POST",
             body: params.toString(),
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
         });
         
         const text = await response.text();
-        
-        // Extract RID
         const ridMatch = text.match(/RID = (\w+)/);
         const rtoeMatch = text.match(/RTOE = (\d+)/);
         
         if (!ridMatch) {
-            return res.status(500).json({ error: "Failed to submit BLAST job", details: text.substring(0, 500) });
+            return res.status(500).json({ error: "Failed to submit BLAST job" });
         }
         
         res.json({
@@ -131,7 +125,7 @@ app.post("/blast/submit", async (req, res) => {
 });
 
 // ============================================
-// BLAST Status - التحقق من حالة الطلب
+// BLAST Status
 // ============================================
 app.get("/blast/status", async (req, res) => {
     try {
@@ -158,7 +152,7 @@ app.get("/blast/status", async (req, res) => {
 });
 
 // ============================================
-// BLAST Results - جلب النتائج
+// BLAST Results
 // ============================================
 app.get("/blast/results", async (req, res) => {
     try {
@@ -191,7 +185,6 @@ app.get("/pubmed/search", async (req, res) => {
             return res.status(400).json({ error: "query is required" });
         }
         
-        // Search
         const searchUrl = `${NCBI_BASE}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=${limit}&retmode=json`;
         const searchRes = await fetch(searchUrl);
         const searchData = await searchRes.json();
@@ -201,8 +194,6 @@ app.get("/pubmed/search", async (req, res) => {
         }
         
         const ids = searchData.esearchresult.idlist.join(",");
-        
-        // Get summaries
         const summaryUrl = `${NCBI_BASE}/esummary.fcgi?db=pubmed&id=${ids}&retmode=json`;
         const summaryRes = await fetch(summaryUrl);
         const summaryData = await summaryRes.json();
@@ -211,35 +202,6 @@ app.get("/pubmed/search", async (req, res) => {
             count: searchData.esearchresult.count,
             results: summaryData.result
         });
-        
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// ============================================
-// Generic NCBI API Proxy
-// ============================================
-app.get("/ncbi-api", async (req, res) => {
-    try {
-        const { endpoint } = req.query;
-        
-        if (!endpoint) {
-            return res.status(400).json({ error: "endpoint is required" });
-        }
-        
-        const url = `${NCBI_BASE}/${endpoint}`;
-        const response = await fetch(url);
-        const contentType = response.headers.get("content-type");
-        
-        if (contentType?.includes("json")) {
-            const data = await response.json();
-            res.json(data);
-        } else {
-            const text = await response.text();
-            res.set("Content-Type", contentType || "text/plain");
-            res.send(text);
-        }
         
     } catch (error) {
         res.status(500).json({ error: error.message });
